@@ -8,11 +8,12 @@ if __name__ == "__main__":
     parser.add_argument('--test', help='Run tests on the model', action="store_true")
     parser.add_argument('--export', help='Export model to .pb and .pbtxt format', action="store_true")
     parser.add_argument('--modeldir', help='Model checkpoint directory', default="./checkpoint")
-    #parser.add_argument('--traindir', help='Training images directory', default="./Training/VOCdevkit/VOC2012/JPEGImages")
-    parser.add_argument('--traindir', help='Training images directory',default="./Test")
+    # parser.add_argument('--traindir', help='Training images directory', default="./Training/VOCdevkit/VOC2012/JPEGImages")
+    parser.add_argument('--traindir', help='Training images directory', default="./Test")
+    parser.add_argument('--testimg', help='Test image', default="./Test/t1.png")
     parser.add_argument('--scale', help='Scaling factor of the model', default=2)
-    parser.add_argument('--batch', help='Batch size of the training', default=32)
-    parser.add_argument('--epoch', help='Number of epochs during training', default=1000)
+    parser.add_argument('--epoch', help='Number of epochs during training', default=100)
+    parser.add_argument('--lr', help='Sets the learning rate', default=0.01)
     args = parser.parse_args()
 
     ARGS = dict()
@@ -25,8 +26,9 @@ if __name__ == "__main__":
     ARGS["CKPT_dir"] = main_ckpt_dir + "/" + args.modeldir + "_sc" + str(args.scale)
     ARGS["CKPT"] = ARGS["CKPT_dir"] + "/ESPCN_ckpt_sc" + str(args.scale)
     ARGS["TRAINDIR"] = args.traindir
-    ARGS["BATCH"] = args.batch
-    ARGS["EPOCH_NUM"] = args.epoch
+    ARGS["EPOCH_NUM"] = int(args.epoch)
+    ARGS["TESTIMG"] = args.testimg
+    ARGS["LRATE"] = float(args.lr)
 
     if args.train:
         run.training(ARGS)
