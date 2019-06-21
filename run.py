@@ -104,7 +104,7 @@ def training(ARGS):
                     train_psnr += (np.mean(np.asarray(ps)))
 
                     if count % 100 == 0:
-                        print("Data num: %d", (count * 32), "Epoch no:", '%04d' % (e + 1), "loss:", "{:.9f}".format(l),
+                        print("Data num:", '%d' % (count * 32), "Epoch no:", '%04d' % (e + 1), "loss:", "{:.9f}".format(l),
                               "epoch loss:", "{:.9f}".format(train_loss / (count)),
                               "epoch psnr:", "{:.9f}".format(train_psnr / (count)))
                         saver.save(sess, ARGS["CKPT"])
