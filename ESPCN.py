@@ -50,9 +50,10 @@ class ESPCN:
 
         # Depth_to_space is equivalent to the pixel shuffle layer.
         out = tf.nn.depth_to_space(l3, scale, data_format='NHWC')
-        out_nchw = tf.transpose(out, [0, 3, 1, 2], name="NCHW_output")
 
         out = tf.nn.tanh(out, name="NHWC_output")
+
+        out_nchw = tf.transpose(out, [0, 3, 1, 2], name="NCHW_output")
         # out = tf.nn.relu(out, name="NHWC_output")
 
         self.saver = tf.train.Saver()

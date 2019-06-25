@@ -44,16 +44,6 @@ def training(ARGS):
     model = EM.ESPCN_model()
     loss, train_op, psnr = EM.ESPCN_trainable_model(model, HR)
 
-    # print("Loading dataset...")
-    # X_np, Y_np = get_dataset(all_image_paths, SCALE)
-    #
-    # LR_images = tf.placeholder(tf.float32, [None, None, None, 1], name='images')
-    # HR_images = tf.placeholder(tf.float32, [None, None, None, 1], name='labels')
-    #
-    # EM = ESPCN.ESPCNmodel(SCALE, LR_images)
-    # model = EM.ESPCN_model()
-    # loss, train_op, psnr = EM.ESPCN_trainable_model(model, HR_images)
-
     with tf.Session(config=config) as sess:
         sess.run(tf.global_variables_initializer())
         train_writer = tf.summary.FileWriter('./logs/train', sess.graph)
@@ -67,28 +57,6 @@ def training(ARGS):
                 print("Loaded checkpoint.")
             else:
                 print("Previous checkpoint does not exists.")
-
-        ##training with old feed_dict method
-        # for e in range(EPOCHS):
-        #     #count = 0
-        #     num_of_batches = (len(X_np)//BATCH)-1
-        #
-        #     train_loss, train_psnr = 0, 0
-        #
-        #     for j in range(0, num_of_batches-1):
-        #         batch_x = X_np[(j*BATCH):(j*BATCH)+BATCH]
-        #         batch_y = Y_np[(j*BATCH):(j*BATCH)+BATCH]
-        #         l, t, ps = sess.run([loss, train_op, psnr], feed_dict={EM.LR_input: batch_x, HR_images: batch_y})
-        #         #count = count + 1
-        #
-        #         train_loss += l
-        #         train_psnr += (np.mean(np.asarray(ps)))
-        #
-        #         #if count % 10 == 0:
-        #     print("Epoch no:", '%04d' % (e + 1), "loss:", "{:.9f}".format(l),
-        #           "epoch loss:", "{:.9f}".format(train_loss/num_of_batches),
-        #           "epoch psnr:", "{:.9f}".format(train_psnr/num_of_batches))
-        #     save_path = saver.save(sess, ARGS["CKPT"])
 
         # training with tf.data method
         saver = tf.train.Saver()
@@ -141,13 +109,24 @@ def test(ARGS):
 
     LR_input_ = imgY.reshape(1, imgY.shape[0], imgY.shape[1], 1)
 
+    # with tf.gfile.GFile("nchw_frozen_ESPCN_graph_x2.pb", 'rb') as f:
+    #     graph_def = tf.GraphDef()
+    #     graph_def.ParseFromString(f.read())
+    #     g = tf.import_graph_def(graph_def)
+    #     # output_tensor = sess.graph.get_tensor_by_name("IteratorGetNext")
+    #
+    # sess = tf.Session(graph=g,config=config)
+    #
+    # LR_tensor = sess.graph.get_tensor_by_name("import/IteratorGetNext:0")
+    # inp = cv2.cvtColor((cropped.astype(np.float32) / 255.0), cv2.COLOR_BGR2YCrCb)[:,:,0].reshape(1, cropped.shape[0], cropped.shape[1], 1)
+    # output = sess.run(sess.graph.get_tensor_by_name("import/NCHW_output:0"), feed_dict={LR_tensor: inp})
+    # Y = output[0][0]
+    # print(Y.shape)
+    # cv2.imshow('Bicubic HR image', Y)
+    # cv2.waitKey(0)
+
     with tf.Session(config=config) as sess:
         print("\nStart running tests on the model\n")
-        # EM = ESPCN.ESPCNmodel(SCALE, tf.placeholder(tf.float32, [None, None, None, 1], name='images'))
-        # model = EM.ESPCN_model()
-        # EM.load_checkpoint(sess, ckpt_dir=ARGS["CKPT_dir"])
-        # output = sess.run(model, feed_dict={EM.LR_input: LR_input_})
-
         # #load the model with tf.data generator
         ckpt_name = ARGS["CKPT"] + ".meta"
         saver = tf.train.import_meta_graph(ckpt_name)
@@ -155,6 +134,7 @@ def test(ARGS):
         graph_def = sess.graph
         LR_tensor = graph_def.get_tensor_by_name("IteratorGetNext:0")
         HR_tensor = graph_def.get_tensor_by_name("NHWC_output:0")
+
         output = sess.run(HR_tensor, feed_dict={LR_tensor: LR_input_})
 
         Y = output[0]
@@ -169,6 +149,7 @@ def test(ARGS):
 
         bicubic_image = cv2.resize(img, None, fx=SCALE, fy=SCALE, interpolation=cv2.INTER_CUBIC)
 
+        print(np.amax(Y), np.amax(LR_input_))
         print("PSNR of ESPCN generated image: ", utils.PSNR(cropped, HR_image))
         print("PSNR of bicubic interpolated image: ", utils.PSNR(cropped, bicubic_image))
 
@@ -176,7 +157,6 @@ def test(ARGS):
         cv2.imshow('HR image', HR_image)
         cv2.imshow('Bicubic HR image', bicubic_image)
         cv2.waitKey(0)
-
 
 def export(ARGS):
     config = tf.ConfigProto()
@@ -186,26 +166,34 @@ def export(ARGS):
 
     print("\nStart exporting the model...\n")
     with tf.Session(config=config) as sess:
-        # EM = ESPCN.ESPCNmodel(SCALE,tf.placeholder(tf.float32, [None, None, None, 1], name='images'))
-        # model = EM.ESPCN_model()
-        # EM.load_checkpoint(sess, ckpt_dir=ARGS["CKPT_dir"])
-
         ckpt_name = ARGS["CKPT"] + ".meta"
         saver = tf.train.import_meta_graph(ckpt_name)
         saver.restore(sess, tf.train.latest_checkpoint(ARGS["CKPT_dir"]))
 
         graph_def = sess.graph.as_graph_def()
-        graph_def = tf.graph_util.convert_variables_to_constants(sess, graph_def, ['NCHW_output'])
-        # graph_def = optimize_for_inference_lib.optimize_for_inference(graph_def, ["images"],
+        graph_def = tf.graph_util.convert_variables_to_constants(sess, graph_def, ['NHWC_output'])
         graph_def = optimize_for_inference_lib.optimize_for_inference(graph_def, ["IteratorGetNext"],
-                                                                      ["NCHW_output"],  # ["NHWC_output"],
+                                                                      ["NHWC_output"],
                                                                       tf.float32.as_datatype_enum)
-        graph_def = TransformGraph(graph_def, ["IteratorGetNext"], ["NCHW_output"], ["sort_by_execution_order"])
-        # graph_def = TransformGraph(graph_def, ["images"], ["NCHW_output"], ["sort_by_execution_order"])
+        graph_def = TransformGraph(graph_def, ["IteratorGetNext"], ["NHWC_output"], ["sort_by_execution_order"])
 
         filename = 'frozen_ESPCN_graph_x' + str(SCALE) + '.pb'
         with tf.gfile.FastGFile(filename, 'wb') as f:
             f.write(graph_def.SerializeToString())
 
         tf.train.write_graph(graph_def, ".", 'train.pbtxt')
+
+        #SAVE NCHW
+        graph_def = sess.graph.as_graph_def()
+        graph_def = tf.graph_util.convert_variables_to_constants(sess, graph_def, ['NCHW_output'])
+        graph_def = optimize_for_inference_lib.optimize_for_inference(graph_def, ["IteratorGetNext"],
+                                                                      ["NCHW_output"],
+                                                                      tf.float32.as_datatype_enum)
+        graph_def = TransformGraph(graph_def, ["IteratorGetNext"], ["NCHW_output"], ["sort_by_execution_order"])
+        filename = 'nchw_frozen_ESPCN_graph_x' + str(SCALE) + '.pb'
+        with tf.gfile.FastGFile(filename, 'wb') as f:
+            f.write(graph_def.SerializeToString())
+
+        tf.train.write_graph(graph_def, ".", 'nchw_train.pbtxt')
+
     print("\nExporting done!\n")

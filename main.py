@@ -7,8 +7,6 @@ if __name__ == "__main__":
     parser.add_argument('--train', help='Start training the model.', action="store_true")
     parser.add_argument('--test', help='Run tests on the model', action="store_true")
     parser.add_argument('--export', help='Export model to .pb and .pbtxt format', action="store_true")
-    parser.add_argument('--modeldir', help='Model checkpoint directory', default="./checkpoint")
-    # parser.add_argument('--traindir', help='Training images directory', default="./Training/VOCdevkit/VOC2012/JPEGImages")
     parser.add_argument('--traindir', help='Training images directory', default="./Test")
     parser.add_argument('--testimg', help='Test image', default="./Test/t1.png")
     parser.add_argument('--scale', help='Scaling factor of the model', default=2)
@@ -23,7 +21,7 @@ if __name__ == "__main__":
     if not os.path.exists(main_ckpt_dir):
         os.makedirs(main_ckpt_dir)
 
-    ARGS["CKPT_dir"] = main_ckpt_dir + "/" + args.modeldir + "_sc" + str(args.scale)
+    ARGS["CKPT_dir"] = main_ckpt_dir + "/checkpoint" + "_sc" + str(args.scale)
     ARGS["CKPT"] = ARGS["CKPT_dir"] + "/ESPCN_ckpt_sc" + str(args.scale)
     ARGS["TRAINDIR"] = args.traindir
     ARGS["EPOCH_NUM"] = int(args.epoch)
