@@ -1,7 +1,5 @@
 Training
 checkpoints
-*.pbtxt
-*.pb
 *.tar
 __pycache__
 logs
